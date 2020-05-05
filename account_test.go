@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package s3_test
+package vault_test
 
 import (
 	"fmt"
@@ -19,18 +19,18 @@ import (
 	"testing"
 	"time"
 
+	vault "github.com/Stakedllc/go-eth2-wallet-store-vault"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	s3 "github.com/wealdtech/go-eth2-wallet-store-s3"
 )
 
 func TestStoreRetrieveAccount(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 	id := fmt.Sprintf("%s-%d", t.Name(), rand.Int31())
-	store, err := s3.New(s3.WithID([]byte(id)))
+	store, err := vault.New(vault.WithID([]byte(id)))
 	if err != nil {
-		t.Skip("unable to access S3; skipping test")
+		t.Skip("unable to access Vault; skipping test")
 	}
 
 	walletID := uuid.New()
@@ -57,9 +57,9 @@ func TestStoreRetrieveAccount(t *testing.T) {
 func TestDuplicateAccounts(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 	id := fmt.Sprintf("%s-%d", t.Name(), rand.Int31())
-	store, err := s3.New(s3.WithID([]byte(id)))
+	store, err := vault.New(vault.WithID([]byte(id)))
 	if err != nil {
-		t.Skip("unable to access S3; skipping test")
+		t.Skip("unable to access Vault; skipping test")
 	}
 
 	walletID := uuid.New()
@@ -82,9 +82,9 @@ func TestDuplicateAccounts(t *testing.T) {
 func TestRetrieveNonExistentAccount(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 	id := fmt.Sprintf("%s-%d", t.Name(), rand.Int31())
-	store, err := s3.New(s3.WithID([]byte(id)))
+	store, err := vault.New(vault.WithID([]byte(id)))
 	if err != nil {
-		t.Skip("unable to access S3; skipping test")
+		t.Skip("unable to access Vault; skipping test")
 	}
 
 	walletID := uuid.New()
@@ -96,9 +96,9 @@ func TestRetrieveNonExistentAccount(t *testing.T) {
 func TestStoreNonExistentAccount(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 	id := fmt.Sprintf("%s-%d", t.Name(), rand.Int31())
-	store, err := s3.New(s3.WithID([]byte(id)))
+	store, err := vault.New(vault.WithID([]byte(id)))
 	if err != nil {
-		t.Skip("unable to access S3; skipping test")
+		t.Skip("unable to access Vault; skipping test")
 	}
 
 	walletID := uuid.New()

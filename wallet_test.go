@@ -11,22 +11,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package s3_test
+package vault_test
 
 import (
 	"fmt"
 	"testing"
 
+	vault "github.com/Stakedllc/go-eth2-wallet-store-vault"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	s3 "github.com/wealdtech/go-eth2-wallet-store-s3"
 )
 
 func TestStoreRetrieveWallet(t *testing.T) {
-	store, err := s3.New()
+	store, err := vault.New()
 	if err != nil {
-		t.Skip("unable to access S3; skipping test")
+		t.Skip("unable to access Vault; skipping test")
 	}
 
 	walletID := uuid.New()

@@ -11,16 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package s3
+package vault
 
 import (
 	"encoding/hex"
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	session "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
 	util "github.com/wealdtech/go-eth2-util"
 	wtypes "github.com/wealdtech/go-eth2-wallet-types/v2"

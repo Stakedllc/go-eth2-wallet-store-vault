@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package s3_test
+package vault_test
 
 import (
 	"fmt"
@@ -22,15 +22,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	s3 "github.com/wealdtech/go-eth2-wallet-store-s3"
+	vault "github.com/Stakedllc/go-eth2-wallet-store-vault"
 )
 
 func TestStoreRetrieveEncryptedWallet(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 	id := fmt.Sprintf("%s-%d", t.Name(), rand.Int31())
-	store, err := s3.New(s3.WithID([]byte(id)), s3.WithPassphrase([]byte("test")))
+	store, err := vault.New(vault.WithID([]byte(id)), vault.WithPassphrase([]byte("test")))
 	if err != nil {
-		t.Skip("unable to access S3; skipping test")
+		t.Skip("unable to access Vault; skipping test")
 	}
 
 	walletID := uuid.New()
@@ -55,9 +55,9 @@ func TestStoreRetrieveEncryptedWallet(t *testing.T) {
 func TestStoreRetrieveEncryptedAccount(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 	id := fmt.Sprintf("%s-%d", t.Name(), rand.Int31())
-	store, err := s3.New(s3.WithID([]byte(id)), s3.WithPassphrase([]byte("test")))
+	store, err := vault.New(vault.WithID([]byte(id)), vault.WithPassphrase([]byte("test")))
 	if err != nil {
-		t.Skip("unable to access S3; skipping test")
+		t.Skip("unable to access Vault; skipping test")
 	}
 
 	walletID := uuid.New()
@@ -86,9 +86,9 @@ func TestStoreRetrieveEncryptedAccount(t *testing.T) {
 func TestBadWalletKey(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 	id := fmt.Sprintf("%s-%d", t.Name(), rand.Int31())
-	store, err := s3.New(s3.WithID([]byte(id)), s3.WithPassphrase([]byte("test")))
+	store, err := vault.New(vault.WithID([]byte(id)), vault.WithPassphrase([]byte("test")))
 	if err != nil {
-		t.Skip("unable to access S3; skipping test")
+		t.Skip("unable to access Vault; skipping test")
 	}
 
 	walletID := uuid.New()
@@ -99,7 +99,7 @@ func TestBadWalletKey(t *testing.T) {
 	require.Nil(t, err)
 
 	// Open wallet with store with different key; should fail
-	store, err = s3.New(s3.WithID([]byte(id)), s3.WithPassphrase([]byte("badkey")))
+	store, err = vault.New(vault.WithID([]byte(id)), vault.WithPassphrase([]byte("badkey")))
 	require.Nil(t, err)
 	_, err = store.RetrieveWallet(walletName)
 	require.NotNil(t, err)
