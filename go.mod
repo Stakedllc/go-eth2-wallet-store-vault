@@ -1,4 +1,4 @@
-module github.com/wealdtech/go-eth2-wallet-store-vault
+module github.com/stakedllc/go-eth2-wallet-store-vault
 
 go 1.12
 
