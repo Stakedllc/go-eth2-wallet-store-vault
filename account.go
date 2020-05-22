@@ -14,9 +14,7 @@
 package vault
 
 import (
-	"bytes"
 	"encoding/json"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -26,6 +24,7 @@ import (
 // Note this will overwrite an existing account with the same ID.  It will not, however, allow multiple accounts with the same
 // name to co-exist in the same wallet.
 func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byte) error {
+	client := s.client
 	// Ensure the wallet exists
 	_, err := s.RetrieveWalletByID(walletID)
 	if err != nil {
@@ -53,13 +52,10 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 		return err
 	}
 
-	path := s.accountPath(walletID, accountID)
-	uploader := s3manager.NewUploader(s.session)
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(path),
-		Body:   bytes.NewReader(data),
-	})
+	path := s.accountPath(walletID.String(), accountID.String())
+
+	_, err = client.Logical().WriteBytes(path, data)
+
 	if err != nil {
 		return errors.Wrap(err, "failed to store key")
 	}
@@ -68,17 +64,23 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 
 // RetrieveAccount retrieves account-level data.  It will fail if it cannot retrieve the data.
 func (s *Store) RetrieveAccount(walletID uuid.UUID, accountID uuid.UUID) ([]byte, error) {
-	path := s.accountPath(walletID, accountID)
-	buf := aws.NewWriteAtBuffer([]byte{})
-	downloader := s3manager.NewDownloader(s.session)
-	if _, err := downloader.Download(buf,
-		&s3.GetObjectInput{
-			Bucket: aws.String(s.bucket),
-			Key:    aws.String(path),
-		}); err != nil {
+	client := s.client
+	path := s.accountPath(walletID.String(), accountID.String())
+
+	secret, err := client.Logical().Read(path)
+
+	if err != nil {
 		return nil, err
 	}
-	data, err := s.decryptIfRequired(buf.Bytes())
+
+	byteData, err := json.Marshal(secret.Data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := s.decryptIfRequired(byteData)
+
 	if err != nil {
 		return nil, err
 	}
@@ -87,35 +89,39 @@ func (s *Store) RetrieveAccount(walletID uuid.UUID, accountID uuid.UUID) ([]byte
 
 // RetrieveAccounts retrieves all account-level data for a wallet.
 func (s *Store) RetrieveAccounts(walletID uuid.UUID) <-chan []byte {
-	path := s.walletPath(walletID)
+	client := s.client
+	path := s.walletPath(walletID.String())
 	ch := make(chan []byte, 1024)
 	go func() {
-		conn := s3.New(s.session)
-		resp, err := conn.ListObjectsV2(&s3.ListObjectsV2Input{
-			Bucket: aws.String(s.bucket),
-			Prefix: aws.String(path + "/"),
-		})
-		if err == nil {
-			for _, item := range resp.Contents {
-				if strings.HasSuffix(*item.Key, "/") {
-					// Directory
-					continue
-				}
-				if strings.HasSuffix(*item.Key, walletID.String()) {
-					// Wallet
-					continue
-				}
-				buf := aws.NewWriteAtBuffer([]byte{})
-				downloader := s3manager.NewDownloader(s.session)
-				_, err := downloader.Download(buf,
-					&s3.GetObjectInput{
-						Bucket: aws.String(s.bucket),
-						Key:    aws.String(*item.Key),
-					})
+		secret, err := client.Logical().List(path)
+
+		if err != nil {
+			return
+		}
+
+		// Discard this error for now
+		// TODO: Do something with the error
+		accounts, _ := secret.Data["keys"].([]interface{})
+
+		for _, account := range accounts {
+			if account.(string) != "index" && account.(string) != walletID.String() {
+
+				// Quietly skip these errors
+				// TODO: Handle errors better through the channel
+				secret, err := client.Logical().Read(s.accountPath(walletID.String(), account.(string)))
+
 				if err != nil {
 					continue
 				}
-				data, err := s.decryptIfRequired(buf.Bytes())
+
+				byteData, err := json.Marshal(secret.Data)
+
+				if err != nil {
+					continue
+				}
+
+				data, err := s.decryptIfRequired(byteData)
+
 				if err != nil {
 					continue
 				}

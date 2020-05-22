@@ -14,7 +14,7 @@
 package vault
 
 import (
-	"bytes"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -22,6 +22,7 @@ import (
 
 // StoreAccountsIndex stores the account index.
 func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
+	client := s.client
 	var err error
 
 	// Do not encrypt empty index.
@@ -32,37 +33,35 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 		}
 	}
 
-	path := s.walletIndexPath(walletID)
-	uploader := s3manager.NewUploader(s.session)
-	if _, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(path),
-		Body:   bytes.NewReader(data),
-	}); err != nil {
-		return errors.Wrap(err, "failed to store wallet index")
+	path := s.walletIndexPath(walletID.String())
+
+	_, err = client.Logical().WriteBytes(path, data)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to store key")
 	}
 	return nil
 }
 
 // RetrieveAccountsIndex retrieves the account index.
 func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
-	path := s.walletIndexPath(walletID)
-	buf := aws.NewWriteAtBuffer([]byte{})
-	downloader := s3manager.NewDownloader(s.session)
-	if _, err := downloader.Download(buf,
-		&s3.GetObjectInput{
-			Bucket: aws.String(s.bucket),
-			Key:    aws.String(path),
-		}); err != nil {
+	client := s.client
+	path := s.walletIndexPath(walletID.String())
+
+	secret, err := client.Logical().Read(path)
+
+	if err != nil {
 		return nil, err
 	}
-	data := buf.Bytes()
-	// Do not decrypt empty index.
-	if len(data) == 2 {
-		return data, nil
+
+	byteData, err := json.Marshal(secret.Data)
+
+	if err != nil {
+		return nil, err
 	}
-	var err error
-	if data, err = s.decryptIfRequired(data); err != nil {
+
+	data, err := s.decryptIfRequired(byteData)
+	if err != nil {
 		return nil, err
 	}
 	return data, nil

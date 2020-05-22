@@ -14,7 +14,6 @@
 package vault
 
 import (
-	"bytes"
 	"encoding/json"
 
 	"github.com/google/uuid"
@@ -25,18 +24,16 @@ import (
 // Note that this will overwrite any existing data; it is up to higher-level functions to check for the presence of a wallet with
 // the wallet name and handle clashes accordingly.
 func (s *Store) StoreWallet(id uuid.UUID, name string, data []byte) error {
-	path := s.walletHeaderPath(id)
+	path := s.walletHeaderPath(id.String())
+	client := s.client
 	var err error
 	data, err = s.encryptIfRequired(data)
 	if err != nil {
 		return errors.Wrap(err, "failed to encrypt wallet")
 	}
-	uploader := s3manager.NewUploader(s.session)
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(path),
-		Body:   bytes.NewReader(data),
-	})
+
+	_, err = client.Logical().WriteBytes(path, data)
+
 	if err != nil {
 		return errors.Wrap(err, "failed to store wallet")
 	}
@@ -74,28 +71,41 @@ func (s *Store) RetrieveWalletByID(walletID uuid.UUID) ([]byte, error) {
 // RetrieveWallets retrieves wallet-level data for all wallets.
 func (s *Store) RetrieveWallets() <-chan []byte {
 	ch := make(chan []byte, 1024)
+	client := s.client
 	go func() {
-		conn := s3.New(s.session)
-		resp, err := conn.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(s.bucket)})
-		if err == nil {
-			for _, item := range resp.Contents {
-				buf := aws.NewWriteAtBuffer([]byte{})
-				downloader := s3manager.NewDownloader(s.session)
-				_, err := downloader.Download(buf,
-					&s3.GetObjectInput{
-						Bucket: aws.String(s.bucket),
-						Key:    aws.String(*item.Key),
-					})
-				if err != nil {
-					continue
-				}
-				data, err := s.decryptIfRequired(buf.Bytes())
-				if err != nil {
-					continue
-				}
-				ch <- data
-			}
+		secret, err := client.Logical().List(s.walletsPath())
+
+		if err != nil {
+			return
 		}
+
+		// Discard this error for now
+		// TODO: Do something with the error
+		wallets, _ := secret.Data["keys"].([]interface{})
+
+		for _, wallet := range wallets {
+			// Quietly skip these errors
+			// TODO: Handle errors better through the channel
+			secret, err := client.Logical().Read(s.walletHeaderPath(wallet.(string)))
+
+			if err != nil {
+				continue
+			}
+
+			byteData, err := json.Marshal(secret.Data)
+
+			if err != nil {
+				continue
+			}
+
+			data, err := s.decryptIfRequired(byteData)
+
+			if err != nil {
+				continue
+			}
+			ch <- data
+		}
+
 		close(ch)
 	}()
 	return ch

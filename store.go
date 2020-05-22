@@ -14,20 +14,18 @@
 package vault
 
 import (
-	"encoding/hex"
-	"fmt"
-	"strings"
+	"io/ioutil"
 
-	"github.com/pkg/errors"
-	util "github.com/wealdtech/go-eth2-util"
+	"github.com/hashicorp/vault/api"
 	wtypes "github.com/wealdtech/go-eth2-wallet-types/v2"
 )
 
 // options are the options for the S3 store
 type options struct {
-	id         []byte
-	region     string
-	passphrase []byte
+	passphrase   []byte
+	role         string
+	vaultAddress string
+	vaultSubPath string
 }
 
 // Option gives options to New
@@ -41,6 +39,13 @@ func (f optionFunc) apply(o *options) {
 	f(o)
 }
 
+// WithVaultAddress sets the vault address to connect to for the store
+func WithClient(vaultAddress string) Option {
+	return optionFunc(func(o *options) {
+		o.vaultAddress = vaultAddress
+	})
+}
+
 // WithPassphrase sets the passphrase for the store.
 func WithPassphrase(passphrase []byte) Option {
 	return optionFunc(func(o *options) {
@@ -48,83 +53,76 @@ func WithPassphrase(passphrase []byte) Option {
 	})
 }
 
-// WithID sets the ID for the store
-func WithID(t []byte) Option {
+// WithRole sets the role for the store.
+func WithRole(role string) Option {
 	return optionFunc(func(o *options) {
-		o.id = t
+		o.role = role
 	})
 }
 
-// WithRegion sets the AWS region for the store
-func WithRegion(t string) Option {
+// WithVaultSubPath sets thewallet name for the Store
+func WithVaultSubPath(vaultSubPath string) Option {
 	return optionFunc(func(o *options) {
-		o.region = t
+		o.vaultSubPath = vaultSubPath
 	})
 }
 
 // Store is the store for the wallet held encrypted on Amazon S3.
 type Store struct {
-	session    *session.Session
-	id         []byte
-	region     string
-	bucket     string
-	passphrase []byte
+	client       *api.Client
+	passphrase   []byte
+	role         string
+	vaultSubPath string
 }
 
-// New creates a new Amazon S3 store.
+// New creates a new Vault backed store.
 // This takes the following options:
 //  - region: a string specifying the Amazon S3 region, defaults to "us-east-1", set with WithRegion()
 //  - id: a byte array specifying an identifying key for the store, defaults to nil, set with WithID()
 // This expects the access credentials to be in a standard place, e.g. ~/.aws/credentials
 func New(opts ...Option) (wtypes.Store, error) {
 	options := options{
-		region: "us-east-1",
+		vaultAddress: "http://vault.vault:8200",
+		role:         "eth",
+		vaultSubPath: "default",
 	}
 	for _, o := range opts {
 		o.apply(&options)
 	}
 
-	session, err := session.NewSession(&aws.Config{Region: aws.String(options.region)})
+	client, err := api.NewClient(&api.Config{
+		Address: options.vaultAddress,
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	creds, err := session.Config.Credentials.Get()
+	jwt, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+
 	if err != nil {
 		return nil, err
 	}
-	cryptKeyCopy := make([]byte, len(creds.AccessKeyID))
-	copy(cryptKeyCopy, creds.AccessKeyID)
 
-	// Generate a bucket name from the cryptKey.  This will be the SHA256 hash of a string unique to the account, as a hex string
-	// of 63 charaters (as S3 only allows bucket names up to 63 characters in length).
-	hash := util.SHA256([]byte(fmt.Sprintf("Ethereum 2 wallet:%s", creds.AccessKeyID)), options.id)
-	bucket := hex.EncodeToString(hash)[:63]
-
-	// Check the bucket exists; if not create it
-	conn := s3.New(session)
-	_, err = conn.GetBucketAcl(&s3.GetBucketAclInput{Bucket: &bucket})
-	if err != nil {
-		if !strings.Contains(err.Error(), "NoSuchBucket") {
-			return nil, errors.Wrap(err, "unable to access bucket")
-		}
-		// Create the bucket
-		_, err = conn.CreateBucket(&s3.CreateBucketInput{Bucket: aws.String(bucket)})
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to create bucket")
-		}
-		err = conn.WaitUntilBucketExists(&s3.HeadBucketInput{Bucket: aws.String(bucket)})
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to confirm bucket creation")
-		}
+	config := map[string]interface{}{
+		"role": options.role,
+		// Have to convert this into a string to compact the jwt
+		"jwt": string(jwt),
 	}
+
+	resp, err := client.Logical().Write("auth/kubernetes/login", config)
+
+	if err != nil {
+		return nil, err
+	}
+
+	client.SetToken(resp.Auth.ClientToken)
 
 	return &Store{
-		session:    session,
-		region:     options.region,
-		id:         options.id,
-		bucket:     bucket,
-		passphrase: options.passphrase,
+		client:       client,
+		passphrase:   options.passphrase,
+		role:         options.role,
+		vaultSubPath: options.vaultSubPath,
 	}, nil
 }
 
@@ -135,5 +133,5 @@ func (s *Store) Name() string {
 
 // Location returns the location of this store.
 func (s *Store) Location() string {
-	return s.bucket
+	return s.vaultSubPath
 }
