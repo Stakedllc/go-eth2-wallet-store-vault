@@ -40,7 +40,7 @@ func (f optionFunc) apply(o *options) {
 }
 
 // WithVaultAddress sets the vault address to connect to for the store
-func WithClient(vaultAddress string) Option {
+func WithVaultAddress(vaultAddress string) Option {
 	return optionFunc(func(o *options) {
 		o.vaultAddress = vaultAddress
 	})
