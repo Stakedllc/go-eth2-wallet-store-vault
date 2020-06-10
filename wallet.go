@@ -15,6 +15,7 @@ package vault
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -76,12 +77,19 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 		secret, err := client.Logical().List(s.walletsPath())
 
 		if err != nil {
+			close(ch)
 			return
 		}
 
+		fmt.Printf("{}", secret)
 		// Discard this error for now
 		// TODO: Do something with the error
-		wallets, _ := secret.Data["keys"].([]interface{})
+		wallets, emptyList := secret.Data["keys"].([]interface{})
+
+		if emptyList {
+			close(ch)
+			return
+		}
 
 		for _, wallet := range wallets {
 			// Quietly skip these errors
