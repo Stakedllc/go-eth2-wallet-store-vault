@@ -27,10 +27,6 @@ func (s *Store) StoreWallet(id uuid.UUID, name string, data []byte) error {
 	path := s.walletHeaderPath(id.String())
 	client := s.client
 	var err error
-	data, err = s.encryptIfRequired(data)
-	if err != nil {
-		return errors.Wrap(err, "failed to encrypt wallet")
-	}
 
 	_, err = client.Logical().WriteBytes(path, data)
 
@@ -104,12 +100,7 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 				continue
 			}
 
-			data, err := s.decryptIfRequired(byteData)
-
-			if err != nil {
-				continue
-			}
-			ch <- data
+			ch <- byteData
 		}
 
 		close(ch)
