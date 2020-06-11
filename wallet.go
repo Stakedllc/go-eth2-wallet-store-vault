@@ -76,7 +76,7 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 	go func() {
 		secret, err := client.Logical().List(s.walletsPath())
 
-		if err != nil {
+		if err != nil || secret == nil {
 			close(ch)
 			return
 		}
