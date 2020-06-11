@@ -20,55 +20,38 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Index struct {
-	index *json.RawMessage
-}
-
 // StoreAccountsIndex stores the account index.
 func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 	client := s.client
 	var err error
+	var structuredData map[string]interface{}
 
 	// Do not encrypt empty index.
 	if len(data) != 2 {
 		// Add an extra step to force the index into a JSON object
 		// Vault has some opposition to storing an array as the base object
-		var rawMessage json.RawMessage
+		var rawMessage []interface{}
 		err = json.Unmarshal(data, &rawMessage)
 
 		if err != nil {
 			return err
 		}
 
-		structuredData := Index{
-			index: &rawMessage,
-		}
-
-		data, err = json.Marshal(structuredData)
-		if err != nil {
-			return err
-		}
+		structuredData["index"] = rawMessage
 	} else {
-		var rawMessage json.RawMessage
+		var rawMessage []interface{}
 		err = json.Unmarshal(data, &rawMessage)
 
 		if err != nil {
 			return err
 		}
 
-		structuredData := Index{
-			index: &rawMessage,
-		}
-
-		data, err = json.Marshal(structuredData)
-		if err != nil {
-			return err
-		}
+		structuredData["index"] = rawMessage
 	}
 
 	path := s.walletIndexPath(walletID.String())
 
-	_, err = client.Logical().WriteBytes(path, data)
+	_, err = client.Logical().Write(path, structuredData)
 
 	if err != nil {
 		return errors.Wrap(err, "failed to store key")
