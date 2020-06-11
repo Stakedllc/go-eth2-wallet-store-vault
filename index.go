@@ -48,11 +48,6 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 		if err != nil {
 			return err
 		}
-
-		data, err = s.encryptIfRequired(data)
-		if err != nil {
-			return err
-		}
 	} else {
 		var rawMessage json.RawMessage
 		err = json.Unmarshal(data, &rawMessage)
@@ -98,9 +93,5 @@ func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := s.decryptIfRequired(byteData)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+	return byteData, nil
 }
