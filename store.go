@@ -84,7 +84,7 @@ func New(opts ...Option) (wtypes.Store, error) {
 	options := options{
 		vaultAddress: "http://vault.vault:8200",
 		role:         "eth",
-		vaultSubPath: "default",
+		vaultSubPath: "eth",
 	}
 	for _, o := range opts {
 		o.apply(&options)
