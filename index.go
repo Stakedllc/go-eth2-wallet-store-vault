@@ -37,7 +37,9 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 			return err
 		}
 
-		structuredData["index"] = rawMessage
+		structuredData = map[string]interface{}{
+			"index": rawMessage,
+		}
 	} else {
 		var rawMessage []interface{}
 		err = json.Unmarshal(data, &rawMessage)
@@ -46,7 +48,9 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 			return err
 		}
 
-		structuredData["index"] = rawMessage
+		structuredData = map[string]interface{}{
+			"index": rawMessage,
+		}
 	}
 
 	path := s.walletIndexPath(walletID.String())
