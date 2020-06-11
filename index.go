@@ -31,7 +31,41 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 
 	// Do not encrypt empty index.
 	if len(data) != 2 {
+		// Add an extra step to force the index into a JSON object
+		// Vault has some opposition to storing an array as the base object
+		var rawMessage json.RawMessage
+		err = json.Unmarshal(data, &rawMessage)
+
+		if err != nil {
+			return err
+		}
+
+		structuredData := Index{
+			index: &rawMessage,
+		}
+
+		data, err = json.Marshal(structuredData)
+		if err != nil {
+			return err
+		}
+
 		data, err = s.encryptIfRequired(data)
+		if err != nil {
+			return err
+		}
+	} else {
+		var rawMessage json.RawMessage
+		err = json.Unmarshal(data, &rawMessage)
+
+		if err != nil {
+			return err
+		}
+
+		structuredData := Index{
+			index: &rawMessage,
+		}
+
+		data, err = json.Marshal(structuredData)
 		if err != nil {
 			return err
 		}
