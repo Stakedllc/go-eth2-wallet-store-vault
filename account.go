@@ -47,11 +47,6 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 		}
 	}
 
-	data, err = s.encryptIfRequired(data)
-	if err != nil {
-		return err
-	}
-
 	path := s.accountPath(walletID.String(), accountID.String())
 
 	_, err = client.Logical().WriteBytes(path, data)
@@ -79,12 +74,7 @@ func (s *Store) RetrieveAccount(walletID uuid.UUID, accountID uuid.UUID) ([]byte
 		return nil, err
 	}
 
-	data, err := s.decryptIfRequired(byteData)
-
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+	return byteData, nil
 }
 
 // RetrieveAccounts retrieves all account-level data for a wallet.
