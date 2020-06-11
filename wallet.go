@@ -81,7 +81,9 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 			return
 		}
 
-		fmt.Printf("{}", secret)
+		fmt.Print(secret)
+		fmt.Print(secret.Data)
+		fmt.Print(secret.Data["keys"])
 		// Discard this error for now
 		// TODO: Do something with the error
 		wallets, emptyList := secret.Data["keys"].([]interface{})
