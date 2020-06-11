@@ -53,6 +53,22 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		var rawMessage json.RawMessage
+		err = json.Unmarshal(data, rawMessage)
+
+		if err != nil {
+			return err
+		}
+
+		structuredData := Index{
+			index: &rawMessage,
+		}
+
+		data, err = json.Marshal(structuredData)
+		if err != nil {
+			return err
+		}
 	}
 
 	path := s.walletIndexPath(walletID.String())
