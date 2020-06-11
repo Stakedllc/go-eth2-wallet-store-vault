@@ -34,7 +34,7 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 		// Add an extra step to force the index into a JSON object
 		// Vault has some opposition to storing an array as the base object
 		var rawMessage json.RawMessage
-		err = json.Unmarshal(data, rawMessage)
+		err = json.Unmarshal(data, &rawMessage)
 
 		if err != nil {
 			return err
@@ -55,7 +55,7 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 		}
 	} else {
 		var rawMessage json.RawMessage
-		err = json.Unmarshal(data, rawMessage)
+		err = json.Unmarshal(data, &rawMessage)
 
 		if err != nil {
 			return err
