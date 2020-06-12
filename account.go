@@ -25,8 +25,10 @@ import (
 // name to co-exist in the same wallet.
 func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byte) error {
 	client := s.client
+
 	// Ensure the wallet exists
 	_, err := s.RetrieveWalletByID(walletID)
+
 	if err != nil {
 		return errors.New("unknown wallet")
 	}
@@ -38,10 +40,12 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 		info := &struct {
 			ID string `json:"uuid"`
 		}{}
+
 		err := json.Unmarshal(existingAccount, info)
 		if err != nil {
 			return err
 		}
+
 		if info.ID != accountID.String() {
 			return errors.New("account already exists")
 		}
@@ -54,6 +58,7 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 	if err != nil {
 		return errors.Wrap(err, "failed to store key")
 	}
+
 	return nil
 }
 
@@ -66,6 +71,10 @@ func (s *Store) RetrieveAccount(walletID uuid.UUID, accountID uuid.UUID) ([]byte
 
 	if err != nil {
 		return nil, err
+	}
+
+	if secret == nil {
+		return nil, errors.New("No account found for ID")
 	}
 
 	byteData, err := json.Marshal(secret.Data)
@@ -91,7 +100,12 @@ func (s *Store) RetrieveAccounts(walletID uuid.UUID) <-chan []byte {
 
 		// Discard this error for now
 		// TODO: Do something with the error
-		accounts, _ := secret.Data["keys"].([]interface{})
+		accounts, typeError := secret.Data["keys"].([]interface{})
+
+		if !typeError {
+			close(ch)
+			return
+		}
 
 		for _, account := range accounts {
 			if account.(string) != "index" && account.(string) != walletID.String() {

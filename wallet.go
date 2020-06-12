@@ -76,11 +76,9 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 			return
 		}
 
-		// Discard this error for now
-		// TODO: Do something with the error
-		wallets, emptyList := secret.Data["keys"].([]interface{})
+		wallets, typeError := secret.Data["keys"].([]interface{})
 
-		if !emptyList {
+		if !typeError {
 			close(ch)
 			return
 		}
