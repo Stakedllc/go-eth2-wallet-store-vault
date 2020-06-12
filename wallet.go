@@ -99,6 +99,11 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 				continue
 			}
 
+			// Ignore folders that don't have secrets
+			if secret == nil {
+				continue
+			}
+
 			byteData, err := json.Marshal(secret.Data)
 
 			if err != nil {
