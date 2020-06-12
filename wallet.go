@@ -80,7 +80,7 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 		// TODO: Do something with the error
 		wallets, emptyList := secret.Data["keys"].([]interface{})
 
-		if emptyList {
+		if !emptyList {
 			close(ch)
 			return
 		}
