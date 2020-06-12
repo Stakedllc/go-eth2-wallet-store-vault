@@ -68,7 +68,11 @@ func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
 		return nil, err
 	}
 
-	byteData, _ := b64.StdEncoding.DecodeString(secret.Data["data"].(string))
+	byteData, err := b64.StdEncoding.DecodeString(secret.Data["data"].(string))
+
+	if err != nil {
+		return nil, err
+	}
 
 	data, err := s.decryptIfRequired(byteData)
 	if err != nil {
