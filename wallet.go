@@ -86,9 +86,11 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 		}
 
 		for _, wallet := range wallets {
+			walletName := wallet.(string)
+			nameLength := len(walletName) - 1
 			// Quietly skip these errors
 			// TODO: Handle errors better through the channel
-			secret, err := client.Logical().Read(s.walletHeaderPath(wallet.(string)))
+			secret, err := client.Logical().Read(s.walletHeaderPath(walletName[:nameLength]))
 
 			if err != nil {
 				continue
