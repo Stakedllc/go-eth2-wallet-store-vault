@@ -14,6 +14,8 @@
 package vault
 
 import (
+	b64 "encoding/base64"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -66,9 +68,9 @@ func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
 		return nil, err
 	}
 
-	byteData := secret.Data["data"]
+	byteData, _ := b64.StdEncoding.DecodeString(secret.Data["data"].(string))
 
-	data, err := s.decryptIfRequired(byteData.([]byte))
+	data, err := s.decryptIfRequired(byteData)
 	if err != nil {
 		return nil, err
 	}
