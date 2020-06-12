@@ -25,6 +25,8 @@ import (
 // the wallet name and handle clashes accordingly.
 func (s *Store) StoreWallet(id uuid.UUID, name string, data []byte) error {
 	path := s.walletHeaderPath(id.String())
+	s.Authorize()
+
 	client := s.client
 	var err error
 
@@ -67,7 +69,10 @@ func (s *Store) RetrieveWalletByID(walletID uuid.UUID) ([]byte, error) {
 // RetrieveWallets retrieves wallet-level data for all wallets.
 func (s *Store) RetrieveWallets() <-chan []byte {
 	ch := make(chan []byte, 1024)
+	s.Authorize()
+
 	client := s.client
+
 	go func() {
 		secret, err := client.Logical().List(s.walletsPath())
 

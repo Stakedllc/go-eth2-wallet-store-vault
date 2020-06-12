@@ -24,6 +24,8 @@ import (
 // Note this will overwrite an existing account with the same ID.  It will not, however, allow multiple accounts with the same
 // name to co-exist in the same wallet.
 func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byte) error {
+	s.Authorize()
+
 	client := s.client
 
 	// Ensure the wallet exists
@@ -64,6 +66,8 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 
 // RetrieveAccount retrieves account-level data.  It will fail if it cannot retrieve the data.
 func (s *Store) RetrieveAccount(walletID uuid.UUID, accountID uuid.UUID) ([]byte, error) {
+	s.Authorize()
+
 	client := s.client
 	path := s.accountPath(walletID.String(), accountID.String())
 
@@ -88,6 +92,8 @@ func (s *Store) RetrieveAccount(walletID uuid.UUID, accountID uuid.UUID) ([]byte
 
 // RetrieveAccounts retrieves all account-level data for a wallet.
 func (s *Store) RetrieveAccounts(walletID uuid.UUID) <-chan []byte {
+	s.Authorize()
+
 	client := s.client
 	path := s.walletPath(walletID.String())
 	ch := make(chan []byte, 1024)

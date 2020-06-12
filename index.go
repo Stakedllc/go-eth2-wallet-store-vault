@@ -22,6 +22,8 @@ import (
 
 // StoreAccountsIndex stores the account index.
 func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
+	s.Authorize()
+
 	client := s.client
 	var err error
 	var structuredData map[string]interface{}
@@ -65,6 +67,8 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 
 // RetrieveAccountsIndex retrieves the account index.
 func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
+	s.Authorize()
+
 	client := s.client
 	path := s.walletIndexPath(walletID.String())
 

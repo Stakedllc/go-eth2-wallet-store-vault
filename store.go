@@ -70,6 +70,7 @@ func WithVaultSubPath(vaultSubPath string) Option {
 // Store is the store for the wallet held encrypted on Amazon S3.
 type Store struct {
 	client       *api.Client
+	jwt          string
 	passphrase   []byte
 	role         string
 	vaultSubPath string
@@ -104,26 +105,33 @@ func New(opts ...Option) (wtypes.Store, error) {
 		return nil, err
 	}
 
+	return &Store{
+		client:       client,
+		jwt:          string(jwt),
+		passphrase:   options.passphrase,
+		role:         options.role,
+		vaultSubPath: options.vaultSubPath,
+	}, nil
+}
+
+func (s *Store) Authorize() error {
+	client := s.client
+
 	config := map[string]interface{}{
-		"role": options.role,
+		"role": s.role,
 		// Have to convert this into a string to compact the jwt
-		"jwt": string(jwt),
+		"jwt": s.jwt,
 	}
 
 	resp, err := client.Logical().Write("auth/kubernetes/login", config)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	client.SetToken(resp.Auth.ClientToken)
 
-	return &Store{
-		client:       client,
-		passphrase:   options.passphrase,
-		role:         options.role,
-		vaultSubPath: options.vaultSubPath,
-	}, nil
+	return nil
 }
 
 // Name returns the name of this store.
