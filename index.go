@@ -14,8 +14,6 @@
 package vault
 
 import (
-	"encoding/json"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -30,28 +28,18 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 
 	// Do not encrypt empty index.
 	if len(data) != 2 {
-		// Add an extra step to force the index into a JSON object
-		// Vault has some opposition to storing an array as the base object
-		var rawMessage []interface{}
-		err = json.Unmarshal(data, &rawMessage)
 
+		data, err = s.encryptIfRequired(data)
 		if err != nil {
 			return err
 		}
 
 		structuredData = map[string]interface{}{
-			"index": rawMessage,
+			"data": data,
 		}
 	} else {
-		var rawMessage []interface{}
-		err = json.Unmarshal(data, &rawMessage)
-
-		if err != nil {
-			return err
-		}
-
 		structuredData = map[string]interface{}{
-			"index": rawMessage,
+			"data": data,
 		}
 	}
 
@@ -78,11 +66,12 @@ func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
 		return nil, err
 	}
 
-	byteData, err := json.Marshal(secret.Data["index"])
+	byteData := secret.Data["data"]
 
+	data, err := s.decryptIfRequired(byteData.([]byte))
 	if err != nil {
 		return nil, err
 	}
 
-	return byteData, nil
+	return data, nil
 }
