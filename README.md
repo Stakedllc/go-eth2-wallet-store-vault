@@ -33,7 +33,6 @@ In normal operation this module should not be used directly.  Instead, it should
 The Vault store has the following options:
 
   - `id`: an ID that is used to differentiate multiple stores created by the same account.  If this is not configured an empty ID is used
-  - `passphrase`: a key used to encrypt all data written to the store.  If this is not configured data is written to the store unencrypted (although wallet- and account-specific private information may be protected by their own passphrases)
 
 ### Example
 
@@ -46,13 +45,6 @@ import (
 )
 
 func main() {
-    // Set up and use an encrypted store
-    store, err := vault.New(vault.WithPassphrase([]byte("my secret")))
-    if err != nil {
-        panic(err)
-    }
-    e2wallet.UseStore(store)
-
     // Set up and use an encrypted store with a non-default vault address
     store, err = vault.New(vault.WithPassphrase([]byte("my secret")), vault.WithVaultAddress("https://my-secret-vault-server"))
     if err != nil {

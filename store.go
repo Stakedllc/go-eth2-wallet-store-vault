@@ -22,7 +22,6 @@ import (
 
 // options are the options for the S3 store
 type options struct {
-	passphrase   []byte
 	role         string
 	vaultAddress string
 	vaultSubPath string
@@ -46,13 +45,6 @@ func WithVaultAddress(vaultAddress string) Option {
 	})
 }
 
-// WithPassphrase sets the passphrase for the store.
-func WithPassphrase(passphrase []byte) Option {
-	return optionFunc(func(o *options) {
-		o.passphrase = passphrase
-	})
-}
-
 // WithRole sets the role for the store.
 func WithRole(role string) Option {
 	return optionFunc(func(o *options) {
@@ -71,7 +63,6 @@ func WithVaultSubPath(vaultSubPath string) Option {
 type Store struct {
 	client       *api.Client
 	jwt          string
-	passphrase   []byte
 	role         string
 	vaultSubPath string
 }
@@ -108,7 +99,6 @@ func New(opts ...Option) (wtypes.Store, error) {
 	return &Store{
 		client:       client,
 		jwt:          string(jwt),
-		passphrase:   options.passphrase,
 		role:         options.role,
 		vaultSubPath: options.vaultSubPath,
 	}, nil
