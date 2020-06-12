@@ -35,11 +35,11 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 		}
 
 		structuredData = map[string]interface{}{
-			"data": string(data),
+			"data": data,
 		}
 	} else {
 		structuredData = map[string]interface{}{
-			"data": string(data),
+			"data": data,
 		}
 	}
 
@@ -68,7 +68,7 @@ func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
 
 	byteData := secret.Data["data"]
 
-	data, err := s.decryptIfRequired([]byte(byteData.(string)))
+	data, err := s.decryptIfRequired(byteData.([]byte))
 	if err != nil {
 		return nil, err
 	}
