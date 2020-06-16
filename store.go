@@ -136,7 +136,7 @@ func (s *Store) Authorize() error {
 
 // Name returns the name of this store.
 func (s *Store) Name() string {
-	return "s3"
+	return "vault"
 }
 
 // Location returns the location of this store.
