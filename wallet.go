@@ -14,7 +14,6 @@
 package vault
 
 import (
-	b64 "encoding/base64"
 	"encoding/json"
 
 	"github.com/google/uuid"
@@ -31,16 +30,7 @@ func (s *Store) StoreWallet(id uuid.UUID, name string, data []byte) error {
 	client := s.client
 	var err error
 
-	data, err = s.encryptIfRequired(data)
-	if err != nil {
-		return err
-	}
-
-	structuredData := map[string]interface{}{
-		"data": data,
-	}
-
-	_, err = client.Logical().Write(path, structuredData)
+	_, err = client.Logical().WriteBytes(path, data)
 
 	if err != nil {
 		return errors.Wrap(err, "failed to store wallet")
@@ -109,23 +99,13 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 				continue
 			}
 
-			// Ignore folders that don't have secrets
-			if secret == nil {
-				continue
-			}
-
-			byteData, err := b64.StdEncoding.DecodeString(secret.Data["data"].(string))
+			byteData, err := json.Marshal(secret.Data)
 
 			if err != nil {
 				continue
 			}
 
-			data, err := s.decryptIfRequired(byteData)
-			if err != nil {
-				continue
-			}
-
-			ch <- data
+			ch <- byteData
 		}
 
 		close(ch)

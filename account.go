@@ -14,7 +14,6 @@
 package vault
 
 import (
-	b64 "encoding/base64"
 	"encoding/json"
 
 	"github.com/google/uuid"
@@ -56,16 +55,7 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 
 	path := s.accountPath(walletID.String(), accountID.String())
 
-	data, err = s.encryptIfRequired(data)
-	if err != nil {
-		return err
-	}
-
-	structuredData := map[string]interface{}{
-		"data": data,
-	}
-
-	_, err = client.Logical().Write(path, structuredData)
+	_, err = client.Logical().WriteBytes(path, data)
 
 	if err != nil {
 		return errors.Wrap(err, "failed to store key")
@@ -91,18 +81,13 @@ func (s *Store) RetrieveAccount(walletID uuid.UUID, accountID uuid.UUID) ([]byte
 		return nil, errors.New("No account found for ID")
 	}
 
-	byteData, err := b64.StdEncoding.DecodeString(secret.Data["data"].(string))
+	byteData, err := json.Marshal(secret.Data)
 
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := s.decryptIfRequired(byteData)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
+	return byteData, nil
 }
 
 // RetrieveAccounts retrieves all account-level data for a wallet.
@@ -139,17 +124,17 @@ func (s *Store) RetrieveAccounts(walletID uuid.UUID) <-chan []byte {
 					continue
 				}
 
-				byteData, err := b64.StdEncoding.DecodeString(secret.Data["data"].(string))
+				byteData, err := json.Marshal(secret.Data)
 
 				if err != nil {
 					continue
 				}
 
 				data, err := s.decryptIfRequired(byteData)
+
 				if err != nil {
 					continue
 				}
-
 				ch <- data
 			}
 		}
