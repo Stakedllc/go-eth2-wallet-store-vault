@@ -95,7 +95,7 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 			// TODO: Handle errors better through the channel
 			secret, err := client.Logical().Read(s.walletHeaderPath(walletName[:nameLength]))
 
-			if err != nil {
+			if err != nil || secret == nil {
 				continue
 			}
 
