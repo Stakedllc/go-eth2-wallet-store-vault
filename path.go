@@ -14,22 +14,24 @@ package vault
 
 import (
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
-func (s *Store) walletPath(walletID uuid.UUID) string {
-	return walletID.String()
+func (s *Store) walletsPath() string {
+	return fmt.Sprintf("/secret/%s", s.Location())
 }
 
-func (s *Store) walletHeaderPath(walletID uuid.UUID) string {
-	return fmt.Sprintf("%s/%s", s.walletPath(walletID), s.walletPath(walletID))
+func (s *Store) walletPath(walletID string) string {
+	return fmt.Sprintf("/secret/%s/%s", s.Location(), walletID)
 }
 
-func (s *Store) accountPath(walletID uuid.UUID, accountID uuid.UUID) string {
-	return fmt.Sprintf("%s/%s", s.walletPath(walletID), accountID.String())
+func (s *Store) walletHeaderPath(walletID string) string {
+	return fmt.Sprintf("/secret/%s/%s/%s", s.Location(), walletID, walletID)
 }
 
-func (s *Store) walletIndexPath(walletID uuid.UUID) string {
-	return fmt.Sprintf("%s/index", s.walletPath(walletID))
+func (s *Store) accountPath(walletID string, accountID string) string {
+	return fmt.Sprintf("/secret/%s/%s/%s", s.Location(), walletID, accountID)
+}
+
+func (s *Store) walletIndexPath(walletID string) string {
+	return fmt.Sprintf("/secret/%s/%s/index", s.Location(), walletID)
 }

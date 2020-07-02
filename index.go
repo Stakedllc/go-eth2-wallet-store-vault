@@ -14,7 +14,7 @@
 package vault
 
 import (
-	"bytes"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -22,48 +22,67 @@ import (
 
 // StoreAccountsIndex stores the account index.
 func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
+	s.Authorize()
+
+	client := s.client
 	var err error
+	var structuredData map[string]interface{}
 
 	// Do not encrypt empty index.
 	if len(data) != 2 {
-		data, err = s.encryptIfRequired(data)
+		// Add an extra step to force the index into a JSON object
+		// Vault has some opposition to storing an array as the base object
+		var rawMessage []interface{}
+		err = json.Unmarshal(data, &rawMessage)
+
 		if err != nil {
 			return err
 		}
+
+		structuredData = map[string]interface{}{
+			"data": rawMessage,
+		}
+	} else {
+		var rawMessage []interface{}
+		err = json.Unmarshal(data, &rawMessage)
+
+		if err != nil {
+			return err
+		}
+
+		structuredData = map[string]interface{}{
+			"data": rawMessage,
+		}
 	}
 
-	path := s.walletIndexPath(walletID)
-	uploader := s3manager.NewUploader(s.session)
-	if _, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(path),
-		Body:   bytes.NewReader(data),
-	}); err != nil {
-		return errors.Wrap(err, "failed to store wallet index")
+	path := s.walletIndexPath(walletID.String())
+
+	_, err = client.Logical().Write(path, structuredData)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to store key")
 	}
 	return nil
 }
 
 // RetrieveAccountsIndex retrieves the account index.
 func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
-	path := s.walletIndexPath(walletID)
-	buf := aws.NewWriteAtBuffer([]byte{})
-	downloader := s3manager.NewDownloader(s.session)
-	if _, err := downloader.Download(buf,
-		&s3.GetObjectInput{
-			Bucket: aws.String(s.bucket),
-			Key:    aws.String(path),
-		}); err != nil {
+	s.Authorize()
+
+	client := s.client
+	path := s.walletIndexPath(walletID.String())
+
+	secret, err := client.Logical().Read(path)
+
+	if err != nil {
 		return nil, err
 	}
-	data := buf.Bytes()
-	// Do not decrypt empty index.
-	if len(data) == 2 {
-		return data, nil
-	}
-	var err error
-	if data, err = s.decryptIfRequired(data); err != nil {
+
+	byteData, err := json.Marshal(secret.Data["data"])
+
+	if err != nil {
 		return nil, err
 	}
-	return data, nil
+
+	return byteData, nil
 }

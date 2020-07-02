@@ -14,9 +14,7 @@
 package vault
 
 import (
-	"bytes"
 	"encoding/json"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -26,8 +24,13 @@ import (
 // Note this will overwrite an existing account with the same ID.  It will not, however, allow multiple accounts with the same
 // name to co-exist in the same wallet.
 func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byte) error {
+	s.Authorize()
+
+	client := s.client
+
 	// Ensure the wallet exists
 	_, err := s.RetrieveWalletByID(walletID)
+
 	if err != nil {
 		return errors.New("unknown wallet")
 	}
@@ -39,83 +42,96 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 		info := &struct {
 			ID string `json:"uuid"`
 		}{}
+
 		err := json.Unmarshal(existingAccount, info)
 		if err != nil {
 			return err
 		}
+
 		if info.ID != accountID.String() {
 			return errors.New("account already exists")
 		}
 	}
 
-	data, err = s.encryptIfRequired(data)
-	if err != nil {
-		return err
-	}
+	path := s.accountPath(walletID.String(), accountID.String())
 
-	path := s.accountPath(walletID, accountID)
-	uploader := s3manager.NewUploader(s.session)
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(path),
-		Body:   bytes.NewReader(data),
-	})
+	_, err = client.Logical().WriteBytes(path, data)
+
 	if err != nil {
 		return errors.Wrap(err, "failed to store key")
 	}
+
 	return nil
 }
 
 // RetrieveAccount retrieves account-level data.  It will fail if it cannot retrieve the data.
 func (s *Store) RetrieveAccount(walletID uuid.UUID, accountID uuid.UUID) ([]byte, error) {
-	path := s.accountPath(walletID, accountID)
-	buf := aws.NewWriteAtBuffer([]byte{})
-	downloader := s3manager.NewDownloader(s.session)
-	if _, err := downloader.Download(buf,
-		&s3.GetObjectInput{
-			Bucket: aws.String(s.bucket),
-			Key:    aws.String(path),
-		}); err != nil {
-		return nil, err
-	}
-	data, err := s.decryptIfRequired(buf.Bytes())
+	s.Authorize()
+
+	client := s.client
+	path := s.accountPath(walletID.String(), accountID.String())
+
+	secret, err := client.Logical().Read(path)
+
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+
+	if secret == nil {
+		return nil, errors.New("No account found for ID")
+	}
+
+	byteData, err := json.Marshal(secret.Data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return byteData, nil
 }
 
 // RetrieveAccounts retrieves all account-level data for a wallet.
 func (s *Store) RetrieveAccounts(walletID uuid.UUID) <-chan []byte {
-	path := s.walletPath(walletID)
+	s.Authorize()
+
+	client := s.client
+	path := s.walletPath(walletID.String())
 	ch := make(chan []byte, 1024)
 	go func() {
-		conn := s3.New(s.session)
-		resp, err := conn.ListObjectsV2(&s3.ListObjectsV2Input{
-			Bucket: aws.String(s.bucket),
-			Prefix: aws.String(path + "/"),
-		})
-		if err == nil {
-			for _, item := range resp.Contents {
-				if strings.HasSuffix(*item.Key, "/") {
-					// Directory
-					continue
-				}
-				if strings.HasSuffix(*item.Key, walletID.String()) {
-					// Wallet
-					continue
-				}
-				buf := aws.NewWriteAtBuffer([]byte{})
-				downloader := s3manager.NewDownloader(s.session)
-				_, err := downloader.Download(buf,
-					&s3.GetObjectInput{
-						Bucket: aws.String(s.bucket),
-						Key:    aws.String(*item.Key),
-					})
+		secret, err := client.Logical().List(path)
+
+		if err != nil {
+			return
+		}
+
+		// Discard this error for now
+		// TODO: Do something with the error
+		accounts, typeError := secret.Data["keys"].([]interface{})
+
+		if !typeError {
+			close(ch)
+			return
+		}
+
+		for _, account := range accounts {
+			if account.(string) != "index" && account.(string) != walletID.String() {
+
+				// Quietly skip these errors
+				// TODO: Handle errors better through the channel
+				secret, err := client.Logical().Read(s.accountPath(walletID.String(), account.(string)))
+
 				if err != nil {
 					continue
 				}
-				data, err := s.decryptIfRequired(buf.Bytes())
+
+				byteData, err := json.Marshal(secret.Data)
+
+				if err != nil {
+					continue
+				}
+
+				data, err := s.decryptIfRequired(byteData)
+
 				if err != nil {
 					continue
 				}

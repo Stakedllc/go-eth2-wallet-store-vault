@@ -53,15 +53,22 @@ func main() {
     }
     e2wallet.UseStore(store)
 
-    // Set up and use an encrypted store in the central Canada region
-    store, err = vault.New(vault.WithPassphrase([]byte("my secret")), vault.WithRegion("ca-central-1"))
+    // Set up and use an encrypted store with a non-default vault address
+    store, err = vault.New(vault.WithPassphrase([]byte("my secret")), vault.WithVaultAddress("https://my-secret-vault-server"))
     if err != nil {
         panic(err)
     }
     e2wallet.UseStore(store)
 
-    // Set up and use an encrypted store with a custom ID
-    store, err = vault.New(vault.WithPassphrase([]byte("my secret")), vault.WithID([]byte("store 2")))
+    // Set up and use an encrypted store with a different vault role
+    store, err = vault.New(vault.WithPassphrase([]byte("my secret")), vault.WithRole("eth2role"))
+    if err != nil {
+        panic(err)
+    }
+    e2wallet.UseStore(store)
+
+    // Set up and use an encrypted store with data stored in a different part of vault
+    store, err = vault.New(vault.WithPassphrase([]byte("my secret")), vault.WithVaultSubPath("eth-secrets"))
     if err != nil {
         panic(err)
     }
