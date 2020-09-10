@@ -54,16 +54,27 @@ func (s *Store) RetrieveWallet(walletName string) ([]byte, error) {
 
 // RetrieveWalletByID retrieves wallet-level data.  It will fail if it cannot retrieve the data.
 func (s *Store) RetrieveWalletByID(walletID uuid.UUID) ([]byte, error) {
-	for data := range s.RetrieveWallets() {
-		info := &struct {
-			ID uuid.UUID `json:"uuid"`
-		}{}
-		err := json.Unmarshal(data, info)
-		if err == nil && info.ID == walletID {
-			return data, nil
-		}
+	s.Authorize()
+
+	client := s.client
+
+	secret, err := client.Logical().Read(s.walletHeaderPath(walletID.String()))
+
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("wallet not found")
+
+	if secret == nil {
+		return nil, errors.New("wallet not found")
+	}
+
+	byteData, err := json.Marshal(secret.Data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return byteData, nil
 }
 
 // RetrieveWallets retrieves wallet-level data for all wallets.
