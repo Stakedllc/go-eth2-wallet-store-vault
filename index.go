@@ -14,7 +14,8 @@
 package vault
 
 import (
-	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -22,42 +23,18 @@ import (
 
 // StoreAccountsIndex stores the account index.
 func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
-	s.Authorize()
-
-	client := s.client
 	var err error
-	var structuredData map[string]interface{}
 
 	// Do not encrypt empty index.
 	if len(data) != 2 {
-		// Add an extra step to force the index into a JSON object
-		// Vault has some opposition to storing an array as the base object
-		var rawMessage []interface{}
-		err = json.Unmarshal(data, &rawMessage)
-
+		data, err = s.encryptIfRequired(data)
 		if err != nil {
 			return err
-		}
-
-		structuredData = map[string]interface{}{
-			"data": rawMessage,
-		}
-	} else {
-		var rawMessage []interface{}
-		err = json.Unmarshal(data, &rawMessage)
-
-		if err != nil {
-			return err
-		}
-
-		structuredData = map[string]interface{}{
-			"data": rawMessage,
 		}
 	}
 
-	path := s.walletIndexPath(walletID.String())
-
-	_, err = client.Logical().Write(path, structuredData)
+	path := filepath.Join(s.localPath, "index.json")
+	err = ioutil.WriteFile(path, data, 0600)
 
 	if err != nil {
 		return errors.Wrap(err, "failed to store key")
@@ -67,22 +44,20 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 
 // RetrieveAccountsIndex retrieves the account index.
 func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
-	s.Authorize()
-
-	client := s.client
-	path := s.walletIndexPath(walletID.String())
-
-	secret, err := client.Logical().Read(path)
+	path := filepath.Join(s.localPath, "index.json")
+	data, err := ioutil.ReadFile(path)
 
 	if err != nil {
 		return nil, err
 	}
 
-	byteData, err := json.Marshal(secret.Data["data"])
-
-	if err != nil {
-		return nil, err
+	// Do not decrypt empty index.
+	if len(data) == 2 {
+		return data, nil
 	}
 
-	return byteData, nil
+	if data, err = s.decryptIfRequired(data); err != nil {
+		return nil, err
+	}
+	return data, nil
 }

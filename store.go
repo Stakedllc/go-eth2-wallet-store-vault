@@ -22,6 +22,7 @@ import (
 
 // options are the options for the S3 store
 type options struct {
+	localPath    string
 	passphrase   []byte
 	role         string
 	vaultAddress string
@@ -39,10 +40,9 @@ func (f optionFunc) apply(o *options) {
 	f(o)
 }
 
-// WithVaultAddress sets the vault address to connect to for the store
-func WithVaultAddress(vaultAddress string) Option {
+func WithLocalPath(localPath string) Option {
 	return optionFunc(func(o *options) {
-		o.vaultAddress = vaultAddress
+		o.localPath = localPath
 	})
 }
 
@@ -60,6 +60,13 @@ func WithRole(role string) Option {
 	})
 }
 
+// WithVaultAddress sets the vault address to connect to for the store
+func WithVaultAddress(vaultAddress string) Option {
+	return optionFunc(func(o *options) {
+		o.vaultAddress = vaultAddress
+	})
+}
+
 // WithVaultSubPath sets thewallet name for the Store
 func WithVaultSubPath(vaultSubPath string) Option {
 	return optionFunc(func(o *options) {
@@ -71,6 +78,7 @@ func WithVaultSubPath(vaultSubPath string) Option {
 type Store struct {
 	client       *api.Client
 	jwt          string
+	localPath    string
 	passphrase   []byte
 	role         string
 	vaultSubPath string
@@ -83,6 +91,7 @@ type Store struct {
 // This expects the access credentials to be in a standard place, e.g. ~/.aws/credentials
 func New(opts ...Option) (wtypes.Store, error) {
 	options := options{
+		localPath:    "/tmp",
 		vaultAddress: "http://vault.vault:8200",
 		role:         "eth",
 		vaultSubPath: "eth",
@@ -108,6 +117,7 @@ func New(opts ...Option) (wtypes.Store, error) {
 	return &Store{
 		client:       client,
 		jwt:          string(jwt),
+		localPath:    options.localPath,
 		passphrase:   options.passphrase,
 		role:         options.role,
 		vaultSubPath: options.vaultSubPath,
