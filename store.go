@@ -98,12 +98,14 @@ func New(opts ...Option) (wtypes.Store, error) {
 	})
 
 	if err != nil {
+		log.Printf("error creating new client %v", err)
 		return nil, err
 	}
 
 	jwt, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 
 	if err != nil {
+		log.Printf("error reading serviceaccount token %v", err)
 		return nil, err
 	}
 

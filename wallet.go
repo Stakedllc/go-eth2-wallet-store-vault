@@ -34,12 +34,11 @@ func (s *Store) StoreWallet(id uuid.UUID, name string, data []byte) error {
 	client := s.client
 	var err error
 
-	log.Printf("attempting to write...")
-
+	log.Printf("attempting to write in wallet.StoreWallet...")
 	_, err = client.Logical().WriteBytes(path, data)
 
 	if err != nil {
-		log.Printf("failed to write with error: %v", err)
+		log.Printf("failed to write in wallet.StoreWallet with error: %v", err)
 		return errors.Wrap(err, "failed to store wallet")
 	}
 	return nil
@@ -65,9 +64,11 @@ func (s *Store) RetrieveWalletByID(walletID uuid.UUID) ([]byte, error) {
 
 	client := s.client
 
+	log.Printf("attempting to read in wallet.RetrieveWalletByID...")
 	secret, err := client.Logical().Read(s.walletHeaderPath(walletID.String()))
 
 	if err != nil {
+		log.Printf("failed to read in wallet.RetrieveWalletByID with error: %v", err)
 		return nil, err
 	}
 
@@ -92,9 +93,11 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 	client := s.client
 
 	go func() {
+		log.Printf("attempting to list in wallet.RetrieveWallets...")
 		secret, err := client.Logical().List(s.walletsPath())
 
 		if err != nil || secret == nil {
+			log.Printf("failed to list in wallet.RetrieveWallets with error: %v", err)
 			close(ch)
 			return
 		}
@@ -110,9 +113,11 @@ func (s *Store) RetrieveWallets() <-chan []byte {
 			walletName := wallet.(string)
 			nameLength := len(walletName) - 1
 
+			log.Printf("attempting to read in wallet.RetrieveWallets...")
 			secret, err := client.Logical().Read(s.walletHeaderPath(walletName[:nameLength]))
 
 			if err != nil || secret == nil {
+				log.Printf("failed to list in wallet.RetrieveWallets with error: %v", err)
 				continue
 			}
 

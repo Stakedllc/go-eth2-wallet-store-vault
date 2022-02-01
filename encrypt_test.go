@@ -19,15 +19,16 @@ import (
 	"testing"
 	"time"
 
+	vault "github.com/Stakedllc/go-eth2-wallet-store-vault"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	vault "github.com/Stakedllc/go-eth2-wallet-store-vault"
 )
 
 func TestStoreRetrieveEncryptedWallet(t *testing.T) {
 	rand.Seed(time.Now().Unix())
 	id := fmt.Sprintf("%s-%d", t.Name(), rand.Int31())
+	// linter error?
 	store, err := vault.New(vault.WithID([]byte(id)), vault.WithPassphrase([]byte("test")))
 	if err != nil {
 		t.Skip("unable to access Vault; skipping test")
