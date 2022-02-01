@@ -18,6 +18,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"log"
 )
 
 // StoreWallet stores wallet-level data.  It will fail if it cannot store the data.
@@ -25,14 +27,19 @@ import (
 // the wallet name and handle clashes accordingly.
 func (s *Store) StoreWallet(id uuid.UUID, name string, data []byte) error {
 	path := s.walletHeaderPath(id.String())
+	log.Printf("wallet header path: %s", path)
 	s.Authorize()
+	log.Printf("successfully authorized")
 
 	client := s.client
 	var err error
 
+	log.Printf("attempting to write...")
+
 	_, err = client.Logical().WriteBytes(path, data)
 
 	if err != nil {
+		log.Printf("failed to write with error: %v", err)
 		return errors.Wrap(err, "failed to store wallet")
 	}
 	return nil

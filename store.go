@@ -18,6 +18,8 @@ import (
 
 	"github.com/hashicorp/vault/api"
 	wtypes "github.com/wealdtech/go-eth2-wallet-types/v2"
+
+	"log"
 )
 
 // options are the options for the S3 store
@@ -123,13 +125,17 @@ func (s *Store) Authorize() error {
 		"jwt": s.jwt,
 	}
 
+	log.Printf("attempting to write with role: %v and jtw: %v", s.role, s.jwt)
+
 	resp, err := client.Logical().Write("auth/kubernetes/login", config)
 
 	if err != nil {
+		log.Printf("error writing config to auth/kubernetes/login: %v", err)
 		return err
 	}
 
 	client.SetToken(resp.Auth.ClientToken)
+	log.Printf("set token as %v", resp.Auth.ClientToken)
 
 	return nil
 }
