@@ -124,7 +124,7 @@ func (s *Store) RetrieveAccounts(walletID uuid.UUID) <-chan []byte {
 
 				// Quietly skip these errors
 				// TODO: Handle errors better through the channel
-				log.Printf("attempting to read in account.RetrieveAccounts...")
+				//log.Printf("attempting to read in account.RetrieveAccounts...")
 				secret, err := client.Logical().Read(s.accountPath(walletID.String(), account.(string)))
 
 				if err != nil {

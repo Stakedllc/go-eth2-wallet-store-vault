@@ -137,6 +137,7 @@ func (s *Store) Authorize() error {
 	}
 
 	client.SetToken(resp.Auth.ClientToken)
+	log.Printf("headers: %v", client.Headers())
 	log.Printf("set token as %v", resp.Auth.ClientToken)
 
 	return nil
