@@ -15,7 +15,6 @@ package vault
 
 import (
 	"encoding/json"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -55,11 +54,11 @@ func (s *Store) StoreAccount(walletID uuid.UUID, accountID uuid.UUID, data []byt
 
 	path := s.accountPath(walletID.String(), accountID.String())
 
-	log.Printf("attempting to write in account.StoreAccount...")
+	//log.Printf("attempting to write in account.StoreAccount...")
 	_, err = client.Logical().WriteBytes(path, data)
 
 	if err != nil {
-		log.Printf("failed to write in account.StoreAccount with error: %v", err)
+		//log.Printf("failed to write in account.StoreAccount with error: %v", err)
 		return errors.Wrap(err, "failed to store key")
 	}
 
