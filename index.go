@@ -18,8 +18,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
-	"log"
 )
 
 // StoreAccountsIndex stores the account index.
@@ -59,11 +57,11 @@ func (s *Store) StoreAccountsIndex(walletID uuid.UUID, data []byte) error {
 
 	path := s.walletIndexPath(walletID.String())
 
-	log.Printf("attempting to write in index.StoreAccountsIndex...")
+	//log.Printf("attempting to write in index.StoreAccountsIndex...")
 	_, err = client.Logical().Write(path, structuredData)
 
 	if err != nil {
-		log.Printf("failed to write in index.StoreAccountsIndex with error: %v", err)
+		//log.Printf("failed to write in index.StoreAccountsIndex with error: %v", err)
 		return errors.Wrap(err, "failed to store key")
 	}
 	return nil
@@ -76,11 +74,11 @@ func (s *Store) RetrieveAccountsIndex(walletID uuid.UUID) ([]byte, error) {
 	client := s.client
 	path := s.walletIndexPath(walletID.String())
 
-	log.Printf("attempting to read in index.RetrieveAccountsIndex...")
+	//log.Printf("attempting to read in index.RetrieveAccountsIndex...")
 	secret, err := client.Logical().Read(path)
 
 	if err != nil {
-		log.Printf("failed to read in index.RetrieveAccountsIndex with error: %v", err)
+		//log.Printf("failed to read in index.RetrieveAccountsIndex with error: %v", err)
 		return nil, err
 	}
 
