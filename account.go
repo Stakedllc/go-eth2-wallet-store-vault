@@ -18,8 +18,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
-	"log"
 )
 
 // StoreAccount stores an account.  It will fail if it cannot store the data.
@@ -102,11 +100,11 @@ func (s *Store) RetrieveAccounts(walletID uuid.UUID) <-chan []byte {
 	path := s.walletPath(walletID.String())
 	ch := make(chan []byte, 1024)
 	go func() {
-		log.Printf("attempting to get path list in account.RetrieveAccounts...")
+		//log.Printf("attempting to get path list in account.RetrieveAccounts...")
 		secret, err := client.Logical().List(path)
 
 		if err != nil {
-			log.Printf("failed to get path list in account.RetrieveAccounts with error: %v", err)
+			//log.Printf("failed to get path list in account.RetrieveAccounts with error: %v", err)
 			return
 		}
 
@@ -128,21 +126,21 @@ func (s *Store) RetrieveAccounts(walletID uuid.UUID) <-chan []byte {
 				secret, err := client.Logical().Read(s.accountPath(walletID.String(), account.(string)))
 
 				if err != nil {
-					log.Printf("failed to read in account.RetrieveAccounts with error: %v", err)
+					//log.Printf("failed to read in account.RetrieveAccounts with error: %v", err)
 					continue
 				}
 
 				byteData, err := json.Marshal(secret.Data)
 
 				if err != nil {
-					log.Printf("failed to marshal json in account.RetrieveAccounts with error: %v", err)
+					//log.Printf("failed to marshal json in account.RetrieveAccounts with error: %v", err)
 					continue
 				}
 
 				data, err := s.decryptIfRequired(byteData)
 
 				if err != nil {
-					log.Printf("failed to decrypt in account.RetrieveAccounts with error: %v", err)
+					//log.Printf("failed to decrypt in account.RetrieveAccounts with error: %v", err)
 					continue
 				}
 				ch <- data
