@@ -1,3 +1,11 @@
+# Diffs between upstream and here
+
+last actual release: https://github.com/Stakedllc/go-eth2-wallet-store-vault/releases/tag/v1.6.5
+
+current diff: https://github.com/Stakedllc/go-eth2-wallet-store-vault/compare/v1.7.7...wealdtech:go-eth2-wallet-store-s3:v1.6.3
+latest diff: https://github.com/Stakedllc/go-eth2-wallet/compare/v1.14.2...wealdtech:go-eth2-wallet:v1.15.1
+
+
 # go-eth2-wallet-store-vault
 
 [![Tag](https://img.shields.io/github/tag/Stakedllc/go-eth2-wallet-store-vault.svg)](https://github.com/Stakedllc/go-eth2-wallet-store-vault/releases/)
