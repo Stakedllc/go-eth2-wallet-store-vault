@@ -1,3 +1,7 @@
+## ARCHIVED 
+
+# Have a look at the new one here: https://kakarot.chorse.space/staked/sre/go-eth2-wallet-store-vault
+
 # go-eth2-wallet-store-vault
 
 [![Tag](https://img.shields.io/github/tag/Stakedllc/go-eth2-wallet-store-vault.svg)](https://github.com/Stakedllc/go-eth2-wallet-store-vault/releases/)
